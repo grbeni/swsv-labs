@@ -1,0 +1,114 @@
+# 5 Verifying architectural and detailed designs
+# The Gamma Statechart Composition Framework
+## Installation
+Gamma is tested to work with Eclipse Photon. Download a new Eclipse IDE for [Java and DSL Developers package](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-java-and-dsl-developers). Install VIATRA 2.0.2 from update site http://download.eclipse.org/viatra/updates/release/2.0.2, and the Yakindu Statechart Tools 3.4.2. from update site: http://updates.yakindu.com/statecharts/releases/. The _Install_ window can be opened via the _Help > Install New Software..._ menu item. In the _Install_ window click _Add..._, and paste the necessary URL in the _Location_ text field. In case of VIATRA, choose the whole _VIATRA Query and Transformation SDK_ package, in case of Yakindu, choose _Yakindu Statechart Tools_, _Yakindu Statechart Tools Base_ and _Yakindu Statechart Tools Java Code Generator_ subpackages in package _Yakindu Statechart Tools Standard Edition_.
+
+![VIATRA update site settings](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/viatra-update-site.png "VIATRA update site settings")
+
+![Yakindu update site settings](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/yakindu-update-site.png "Yakindu update site settings")
+
+Exit Eclipse and extract the [Gamma zip file](https://inf.mit.bme.hu/sites/default/files/gamma/GammaTutorialPack_2.0.0.zip) into the root folder of eclipse (this will create the plugins directory in the dropins folder, containing the JAR file of the Gamma). When starting Eclipse for the first time, you might need to start it with the _-clean_ flag. Check if the plugin installed successfully in _Help > About Eclipse_ and by clicking _Installation Details_. On the _Plug-ins_ tab, sort the entries by _Plugin-in Id_ and look for entries starting with _hu.bme.mit.gamma_.
+
+_Tip: It is advised to turn on automatic refreshing for the workspace. The other option is to refresh it manually with F5 after every Gamma command._
+
+![Workspace settings](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/workspace-settings.png "Workspace settings")
+
+For formal verification, download and extract [UPPAAL](http://www.uppaal.org/). In order to let Gamma find the UPPAAL executables, add the bin-Win32 or bin-Linux folder to the path environment variable (depending on the operating system being used).
+
+## Presenting the Models
+In this laboratory practice, we are going to design the controller of traffic lights in a crossroad. In each direction, the traffic lights are the standard 3-phase lights looping through the red-green-yellow-red sequence. As an extra, there is an interrupted mode that may be triggered by the police – in this state, the traffic lights will be blinking in yellow.
+
+![Crossroad states](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/crossroad-states.png "Crossroad states")
+
+Import the skeleton of the crossroad model from _hu.bme.mit.gamma.tutorial.start.zip_ as an existing project (browse the archive file then click _Finish_). You will see a number of existing artifacts, including a Junit test file in the _/test_ folder and various models in subfolders of _/model_. At this point, the project should contain errors that have to be fixed in the laboratory practice.
+
+![Import](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/import.png "Import")
+
+![Start project](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/start-project.png "Start project")
+
+To reduce the complexity of the models, we divide the controller into submodules. For each road, the lights will be controlled by an instance of the _traffic light controller_ statechart (_/model/TrafficLight/TrafficLightCtrl.sct_), while a separate crossroad controller (_/model/Controller/Controller.sct_) will be responsible for the coordination of the flow of traffic.
+The models of the controllers should be easy to read. The _traffic light controllers_ start from the _Red_ state and will advance to the next state upon receiving a _toggle_ signal. In this example, we assume that timing comes from the crossroad controller – in the form of such _toggle_ signals. The _crossroad controller_ will react to the passing of time, so that it can decide which traffic light(s) to toggle in the given step. This strategy separates the responsibility of handling the lights (through the _LightCommands_ interface) and coordinating the flow of traffic.
+As mentioned before, the police may interrupt the behavior of the crossroad at any time, switching all the lights to a blinking yellow state. This signal is sent through the _crossroad controller_, which will forward it to the traffic light controllers (as the blinking yellow behavior is implemented there).
+There is also a monitor component (_/model/Monitor/Monitor.sct_) that will be used later.
+After examining the _traffic light controller_ and the _crossroad controller_, you should notice that they have matching interfaces, but the direction of events is the opposite. This is because Gamma works with the concept of _ports_, points of service that can provide or require an interface. An output event on a provided interface will be an output event on a required one, enabling the connection of the two ports with a _channel_.
+The interfaces used in the Yakindu statecharts of the controllers are defined separately. Ideally, the definition of the interfaces should be the first step in system design. Gamma supports this idea by letting us define the interfaces in an empty Yakindu statechart, then compiling them into the native modeling language of the tool.
+With the interfaces defined and components modeled, the last thing is to describe the whole system is built. This is done in the textual syntax of Gamma. Open the composite system description in _/model/Crossroad.gcd_ (the extension stands for Gamma Composite Definition). You should see a bunch of errors, which you will have to fix.
+To interpret the syntax, observe the following figure, which illustrates the schematic structure of the system. After importing the components, the file declares that we are specifying the _Crossroad_ system, which will consist of a _CrossroadComponent_ defined as follows. 
+
+![Crossroad component](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/crossroad-component.png "Crossroad component")
+
+* First, we define the ports of the system. In this case, we wish to _send_ police interrupt signals from the environment (we _require_ someone who implements this interface) and observe the output of the lights of the primary road (we _provide_ the opportunity to observe the lights).
+* Then we define the structure of the composite component in three parts:
+    * we instantiate components, with the syntax of: _**component** componentID : ComponentType_;
+    * define which port of which component should implement the ports of the composite component, with the syntax of: _**bind** systemPortID -> componentID.componentPortID_;
+    * connect the ports of subcomponents with channels, with the syntax of: _**channel** [componentID.componentPortID] -o)- [componentID.componentPortID]_.
+
+Finish the _CrossroadComponent_ model in file *Crossroad.gcd*. Content assist can be used while editing the model by pressing _Ctrl + Space_. More example on the Gamma syntax can be found in file _MonitoredCrossroad.gcd_.
+
+_Note: By default, channels are 1-to-1 connections and no port can connect through more than one channel. The only exception is ports that implement a broadcast interface, an interface which has only outgoing events, in provided mode. Such ports may be connected to multiple listeners, ports that implement the broadcast interface in required mode._
+
+_Note: In this practice the synchronous-reactive semantics is utilized, which means that components are executed in cycles (just like the default behavior of Yakindu statecharts), all at the same time. In practice, the order of execution in each cycle is undefined, but this is not a problem, because communication over channels – the only legal way of communication in Gamma – is delayed by one cycle. This way, the causal relationship between the components is well-defined.
+It is also important to note that Gamma considers the pieces of information passed through channels as signals (or events). In contrast to messages, these signals are synchronous, not queued, not buffered, they have to be processed in the cycle they arrive. One of the consequences is the restriction on multiple source ports for a channel – there is no way in synchronous-reactive semantics to distinguish the source and the signals will overwrite themselves in an undefined order.
+Additionally, Gamma supports cascade (also in the synchronous domain) and asynchronous-reactive (messages and message queues) composition as well._
+
+**CHECK**: create a screenshot of the finished _CrossroadComponent_ model.
+
+## Compiling the Yakindu Statecharts
+
+Yakindu serves are a frontend to the formal modeling language of Gamma. Therefore, Yakindu statecharts have to be _compiled_. To compile a Yakindu statechart, Gamma first needs the definition of interfaces used in the system.
+To generate the interface definitions from the existing empty Yakindu statechart, right-click _/model/Interfaces/Crossroad.sct_ and select _Gamma Commands > Compile Interface_. This should generate a new file called _Crossroad_interface.gcd_. Press _F5_ if you do not see the new file or turn on automatic refreshing of the workspace.
+
+![Menu: compile interface](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/menu-compile-interface.png "Menu: compile interface")
+
+To compile the Yakindu statecharts modeling the two types of controllers, Gamma needs to know how to interpret the interfaces found in them. To specify this, we will use Gamma generator models (_.ggen_).
+Open _/model/TrafficLight/Controller.ggen_ to see what a Gamma generator model does. You will see that the file specifies the Yakindu statechart to map (this is the _name_ of the statechart, which is by default the same as the filename, but can be changed in the properties view), then a series of mappings. For each interface in the Yakindu model, we have to create a port with an interface matching the Yakindu interface _in the specified mode_ (provided or required). In this file, there are two pairs of ports that implement the same interface in the same mode, as well as one that implements the same but in a different mode.
+With the specified information, Gamma can now compile the Yakindu statecharts.
+Right-click the _.ggen_ files one by one and select _Gamma Commands > Compile Statechart_. This should create a new file for every statechart with the _.gcd_ extension. This is the textual representation of statecharts used internally by Gamma.
+By this time, none of the files in the _/model_ folder should have any error markers.
+
+## Code Generation
+
+Gamma can generate code for the composite system specified so far. It will reuse the code generated by Yakindu, so let us first generate the implementation of the Yakindu statecharts.
+The project already contains the Yakindu generator models (_.sgen_) necessary to generate code from Yakindu statecharts. Editing and saving the statecharts will automatically regenerate the code, but we can also invoke code generation by right-clicking the _.sgen_ files and selecting _Generate Code Artifacts_.
+When Yakindu has finished code generation, let us generate the implementation of the composite system. Right-click on _/model/Crossroad.gcd_ and select _Gamma Commands > Generate Source Code > Generate Java Code_.
+After building the workspace, the last errors should vanish and the implementation of the crossroad should be in the _/src-gen_ folder in various packages.
+
+_Note: C++ code generation is currently under development and therefore it is not yet supported._
+
+## Testing
+
+To demonstrate the API of the generated code, there is a prepared test file in the _/test_ folder. 
+The file contains an embedded class (_CommandListener_) which implements a version of the _LightCommands_ interface. Expand the imports to see exatly what is implemented:
+
+    hu.bme.mit.gamma.impl.interfaces.LightCommandsInterface.Listener.Provided
+    
+This Java interface is a listener for the output events of the _LightCommands_ interface in _provided_ mode. Other Java interfaces related to the _LightCommands_ interface are as follows.
+
+* _LightCommandsInterface.Listener.Required_: a listener for the output events of the interface in required mode.
+* _LightCommandsInterface.Provided_: contains method to raise input events of the interface in provided mode.
+* _LightCommandsInterface.Required_: contains method to raise input events of the interface in required mode.
+
+The _CommandListener_ will be used to cache the output events of the system and check them in assertions.
+The file also contains an initializer method (_init_), which demonstrates how to instantiate the composite component. Instantiation also initializes the component, but it can be reinitialized if we need to register listeners before starting it.
+There are two test cases in the file. The first one (_greenAtStart_) checks if the components initialize correctly: at first, the priority traffic light controller should emit a _displayRed_ signal, while the _crossroad controller_ will send it a _toggle_ signal. This signal arrives in the next cycle, when the priority _traffic light controller_ should raise the _displayGreen_ signal.
+Observe the comments to learn what the different methods do. Observe how to reach ports, how to raise events on them, how to register listeners and how to run the component until no more internal signals are left to process. There is also a _runCycle()_ function that executes only a single cycle of the system, but that will leave internal signals in the channels.
+The second test case is somewhat more complex and demonstrates the timed behavior of the implementation. Notice that we call the _reset()_ method after registering the listener to reinitialize the component and therefore receive the first entry events as well.
+Run the tests by right-clicking the source file and selecting _Run As > Junit Test_. Both tests should be green, but the second one will take more than 3 seconds to run. This is due to the waiting in the test case, which is not scalable to larger tests. The next section will present a way to overcome this problem.
+
+_Note: If the second test fails, try to re-run it a few times. As system timing is not always accurate, there might be more extreme cases when the timers will not trigger when they would normally have to._
+
+**CHECK**: create a screenshot of the executed unit test.
+
+## Model Checking
+
+It is time for a deeper analysis of the crossroad model. Gamma can use model checkers to analyze the behavior of composite systems. Currently, the timed model checker UPPAAL is supported as a verification backend.
+We have to start by generating the formal model that will be the input of UPPAAL. To do this, right-click on _/model/Crossroad.gcd_ and select _Gamma Commands > Generate Formal Composite Model_. This should create two more files, _Crossroad.xml_, which contains a model that can be opened with UPPAAL, and _Crossroad.q_, which contains a number of queries.
+For each state in each statechart component, Gamma generates a query that will check if that state is active in any reachable configuration of the system. The queries can be checked in UPPAAL, either as a form of "deep validation", or to obtain a set of test cases. This functionality is reachable via the _Generate Test Set_ button of the GUI.
+Model checking of requirements, on the other hand, is an automatic formal verification technique used to exhaustively analyze the possible behaviors of a system and see if a desired behavior is possible to achieve, or a bad behavior can never be executed. We will use this capability to check if the crossroad can get into a state where both directions get a green light.
+To specify the requirement, we need to use temporal logics. As temporal logic expressions are hard to read and even harder to write, Gamma provides a more intuitive way of formalizing requirements: fillable patterns.
+Right-click _/model/Crossroad.gcd_ and select _Gamma Commands > Open Query Generator_ to open the requirement specification window. The top-left part of the window will let you select a template. There are five types of templates: _might eventually_, _must eventually_, _might always_, _must always_ and _leads to_. Upon selecting one, the textbox below will show the corresponding temporal logic operator and an English sentence describing the requirement. There is also an example requirement that would be typically formalized this way. The middle part contains one or two textboxes to formalize the condition mentioned in the patterns. The top-right part helps in assembling the condition formula: select something from the drop-down to insert it at the end of the textbox that last had focus. Note that the textboxes are editable, and the user has to take case of parentheses.
+The bottom part contains the _Verify_ button – click it after filling the conditions and UPPAAL will check if the model satisfies your requirement or not. Be aware that model checking is performance-intensive, so this operation might take long.
+Let us specify the requirement of not having green light in both directions. Using the presented controls, select the _Must always template_ and specify the condition as "not green for priority and green for secondary at the same time".
+After clicking the verify button, UPPAAL returns with the result that our model fails to satisfy the requirement, meaning that there is actually a way to reach the undesired state of letting vehicles come in from every direction. Fortunately, UPPAAL also computes a counterexample (or example in desirable behaviors), demonstrating how exactly we can reach the bad state.
+
+**CHECK**: create a screenshot of the GUI showing the result of the verification.
