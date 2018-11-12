@@ -3,15 +3,15 @@
 ## Installation
 Gamma is tested to work with Eclipse Photon. Download a new Eclipse IDE for [Java and DSL Developers package](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-java-and-dsl-developers). Install VIATRA 2.0.2 from update site http://download.eclipse.org/viatra/updates/release/2.0.2, and the Yakindu Statechart Tools 3.4.2. from update site: http://updates.yakindu.com/statecharts/releases/. The _Install_ window can be opened via the _Help > Install New Software..._ menu item. In the _Install_ window click _Add..._, and paste the necessary URL in the _Location_ text field. In case of VIATRA, choose the whole _VIATRA Query and Transformation SDK_ package, in case of Yakindu, choose _Yakindu Statechart Tools_, _Yakindu Statechart Tools Base_ and _Yakindu Statechart Tools Java Code Generator_ subpackages in package _Yakindu Statechart Tools Standard Edition_.
 
-![VIATRA update site settings <>](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/viatra-update-site.png "VIATRA update site settings")
+![VIATRA update site settings](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/viatra-update-site.png "VIATRA update site settings")
 
-![Yakindu update site settings <>](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/yakindu-update-site.png "Yakindu update site settings")
+![Yakindu update site settings](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/yakindu-update-site.png "Yakindu update site settings")
 
 Exit Eclipse and extract the [Gamma zip file](https://inf.mit.bme.hu/sites/default/files/gamma/GammaTutorialPack_2.0.0.zip) into the root folder of eclipse (this will create the plugins directory in the dropins folder, containing the JAR file of the Gamma). When starting Eclipse for the first time, you might need to start it with the _-clean_ flag. Check if the plugin installed successfully in _Help > About Eclipse_ and by clicking _Installation Details_. On the _Plug-ins_ tab, sort the entries by _Plugin-in Id_ and look for entries starting with _hu.bme.mit.gamma_.
 
 _Tip: It is advised to turn on automatic refreshing for the workspace. The other option is to refresh it manually with F5 after every Gamma command._
 
-![Workspace settings <>](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/workspace-settings.png "Workspace settings")
+![Workspace settings](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/workspace-settings.png "Workspace settings")
 
 For formal verification, download and extract [UPPAAL](http://www.uppaal.org/). In order to let Gamma find the UPPAAL executables, add the bin-Win32 or bin-Linux folder to the path environment variable (depending on the operating system being used).
 
@@ -90,8 +90,6 @@ When Yakindu has finished code generation, let us generate the implementation of
 ![Menu: generate Java code](https://github.com/grbeni/swsv-labs/blob/master/verifying-architectural-design/images/java-code-generation.png "Menu: generate Java code")
 
 After building the workspace, the last errors should vanish and the implementation of the crossroad should be in the `/src-gen` folder in various packages.
-
-_Note: C++ code generation is currently under development and therefore it is not yet supported._
 
 ## Testing
 
